@@ -10,15 +10,15 @@ const AdsFetcher = () => {
   const [dateFrom, setDateFrom] = useState(getDefaultDateFrom());
   const [dateTo, setDateTo] = useState(getDefaultDateTo());
   const [ads, setAds] = useState([]);
+  const [readyAdsCount, setReadyAdsCount] = useState(0);
+  const [retrievedAdsCount, setRetrievedAdsCount] = useState(0);
 
-  // Function to get date one week ago
   function getDefaultDateFrom() {
     const date = new Date();
     date.setDate(date.getDate() - 7);
     return date.toISOString().slice(0, 10);
   }
 
-  // Function to get today's date
   function getDefaultDateTo() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -28,25 +28,78 @@ const AdsFetcher = () => {
     const tokenFromUrl = urlParams.get("access_token");
     if (tokenFromUrl) {
       setAccessToken(tokenFromUrl);
-      urlParams.delete("access_token");
-      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
-  const fetchAds = async () => {
+  const handleAdReady = () => {
+    setReadyAdsCount((prevCount) => prevCount + 1);
+  };
+
+  const fetchAdsFromApi = async (searchParams = "") => {
     setAds([]);
-    const response = await fetch(`/api/ads?accessToken=${accessToken}&keyword=${keyword}&pageId=${pageId}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
+    setReadyAdsCount(0); // Reset the counter when fetching new ads
+    setRetrievedAdsCount(0); // Reset the counter when fetching new ads
+    const url = `/api/ads?accessToken=${accessToken}${searchParams}`;
+    const response = await fetch(url);
+
     if (response.ok) {
-      const data = await response.json();
-      //setAds(data.slice(0, 2)); // Or setAds(data); to display all
-      setAds(data);
+      const adsData = await response.json();
+      setRetrievedAdsCount(adsData.length); // Reset the counter when fetching new ads
+
+      const updatedAds = await Promise.all(
+        adsData.map(async (ad) => {
+          if (!ad.ad_snapshot_url) return;
+
+          const mediaResponse = await fetch(`/api/fetch-images?url=${encodeURIComponent(ad.ad_snapshot_url)}`);
+          const mediaData = await mediaResponse.json();
+
+          const updatedAd = { ...ad, images: mediaData.images, videos: mediaData.videos };
+
+          // Save the ad
+          const saveAdResponse = await fetch("/api/save-ads", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedAd),
+          });
+
+          if (saveAdResponse.ok) {
+            setReadyAdsCount((prevCount) => prevCount + 1);
+          } else {
+            console.error("Failed to save ad:", updatedAd.id);
+          }
+
+          return updatedAd;
+        })
+      );
+
+      setAds(updatedAds); // Still limiting to 1 for now
     } else {
       console.error("Failed to fetch ads");
     }
   };
 
+  const fetchByKeyword = async () => {
+    const params = new URLSearchParams({
+      keyword: keyword,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+    });
+    fetchAdsFromApi(`&${params.toString()}`);
+  };
+
   const startOAuth = () => {
     window.location.href = "/api/facebook/auth";
+  };
+
+  const fetchByPageId = async (pageId) => {
+    const params = new URLSearchParams({
+      pageId: pageId,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+    });
+    fetchAdsFromApi(`&${params.toString()}`);
   };
 
   // Placeholder bank data - replace with real names and IDs
@@ -58,30 +111,20 @@ const AdsFetcher = () => {
     { name: "Findomestic", id: "104257068550" },
   ];
 
-  const handleBankClick = async (pageId) => {
-    setAds([]);
-    const response = await fetch(`/api/ads?accessToken=${accessToken}&pageId=${pageId}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
-    if (response.ok) {
-      const data = await response.json();
-      //setAds(data.slice(0, 2)); // Or setAds(data); to display all
-      setAds(data);
-    } else {
-      console.error("Failed to fetch ads");
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto mt-10 p-5">
       <h1 className="text-2xl font-light mb-4">Cerbero's Social Tool 👹</h1>
+
       <div className="mb-4 flex items-center">
         <input type="text" className="w-full flex-grow p-2 border border-gray-300 rounded mr-2" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} />
         <button className="bg-blue-500 text-white p-2 rounded px-4 w-64" onClick={startOAuth}>
           Refresh Token
         </button>
       </div>
+
       <div className="mb-4 flex items-center">
         <input type="text" className="w-full flex-grow p-2 border border-gray-300 rounded mr-2" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-        <button className="bg-blue-500 text-white p-2 rounded px-4 w-64" onClick={fetchAds}>
+        <button className="bg-blue-500 text-white p-2 rounded px-4 w-64" onClick={fetchByKeyword}>
           Keyword Search
         </button>
       </div>
@@ -99,13 +142,26 @@ const AdsFetcher = () => {
 
       <div className="mb-4">
         {banks.map((bank) => (
-          <button key={bank.id} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2" onClick={() => handleBankClick(bank.id)}>
+          <button key={bank.id} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2" onClick={() => fetchByPageId(bank.id)}>
             {bank.name}
           </button>
         ))}
       </div>
 
-      <div className="mt-6">{ads.length ? ads.map((ad, index) => <AdComponent key={index} ad={ad} />) : <p>No ads found.</p>}</div>
+      <div className="mt-6">
+        {readyAdsCount < retrievedAdsCount && (
+          <div className="mb-4">
+            <progress className="w-full" max={retrievedAdsCount} value={readyAdsCount}></progress>
+            <p className="text-center">
+              {readyAdsCount} / {retrievedAdsCount} Ads Downloaded
+            </p>
+          </div>
+        )}
+
+        {ads.map((ad, index) => (
+          <AdComponent key={index} ad={ad} />
+        ))}
+      </div>
     </div>
   );
 };

@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { JSDOM } from "jsdom";
 import fs from "fs/promises"; // Use fs/promises for easier async/await
 
-async function extractImageUrls(filepath) {
+async function extractImageUrls(htmlContent) {
   try {
-    const htmlContent = await fs.readFile(filepath, "utf8");
     const imageUrls = [];
     const regex = /"original_image_url":\s*"([^"]+)"/g; // Corrected regex
     let match;
@@ -18,9 +17,8 @@ async function extractImageUrls(filepath) {
   }
 }
 
-async function extractVideoUrls(filepath) {
+async function extractVideoUrls(htmlContent) {
   try {
-    const htmlContent = await fs.readFile(filepath, "utf8");
     const videoUrls = [];
     const regex = /"video_sd_url":\s*"([^"]+)"/g;
     let match;
@@ -34,9 +32,8 @@ async function extractVideoUrls(filepath) {
   }
 }
 
-async function extractHtmls(filepath) {
+async function extractHtmls(htmlContent) {
   try {
-    const htmlContent = await fs.readFile(filepath, "utf8");
     const videoUrls = [];
     const regex = /"__html":\s*"([^"]+)"/g;
     let match;
@@ -71,24 +68,9 @@ export async function GET(request) {
     const data = await response.json();
     const htmlContent = data.result.content;
 
-    // --- Save HTML to disk for debugging ---
-    const filename = `debug-html-${Date.now()}-${Math.random().toString(36).substring(2)}.html`;
-    const filepath = `/tmp/${filename}`; // Save to /tmp/ (adjust if needed)
-    try {
-      await fs.writeFile(filepath, htmlContent, "utf8");
-      console.log(`Debug HTML saved to: ${filepath}`);
-    } catch (saveError) {
-      console.error("Error saving HTML to disk:", saveError);
-      // Handle the error (e.g., log it) but continue execution
-    }
-
-    const images = await extractImageUrls(filepath);
-    const videos = await extractVideoUrls(filepath);
-    const htmls = await extractVideoUrls(filepath);
-
-    console.log("Original Image URLs:", images);
-    console.log("Video SD URLs:", videos);
-    console.log("HTMLS:", htmls);
+    const images = await extractImageUrls(htmlContent);
+    const videos = await extractVideoUrls(htmlContent);
+    const htmls = await extractVideoUrls(htmlContent);
 
     return NextResponse.json({ images, videos });
   } catch (error) {

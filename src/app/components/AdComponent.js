@@ -6,32 +6,7 @@ const renderUniqueItems = (items) => {
   return uniqueItems.map((item, index) => <div key={index}>{item}</div>);
 };
 
-const AdComponent = ({ ad }) => {
-  const [images, setImages] = useState([]);
-  const [videos, setVideos] = useState([]);
-
-  useEffect(() => {
-    const fetchContent = async () => {
-      if (!ad.ad_snapshot_url) return;
-
-      try {
-        const response = await fetch(`/api/fetch-images?url=${encodeURIComponent(ad.ad_snapshot_url)}`);
-        const data = await response.json();
-
-        if (data.images) {
-          setImages(data.images);
-        }
-        if (data.videos) {
-          setVideos(data.videos);
-        }
-      } catch (error) {
-        console.error("Failed to fetch ad content:", error);
-      }
-    };
-
-    fetchContent();
-  }, [ad.ad_snapshot_url]);
-
+const AdComponent = ({ ad, onReady }) => {
   return (
     <div className="border p-6 rounded-lg shadow mb-6 bg-white">
       <div className="flex flex-wrap mb-4">
@@ -111,11 +86,11 @@ const AdComponent = ({ ad }) => {
         )}
       </div>
 
-      {images.length > 0 && (
+      {ad.images.length > 0 && (
         <div className="mb-4">
           <div className="text-sm font-light text-gray-800 w-20">Images</div>
           <div className="flex flex-wrap">
-            {images.map((src, index) => (
+            {ad.images.map((src, index) => (
               <a
                 key={index}
                 href={src} // Link directly to the image source
@@ -131,11 +106,11 @@ const AdComponent = ({ ad }) => {
           </div>
         </div>
       )}
-      {videos.length > 0 && (
+      {ad.videos.length > 0 && (
         <div className="mb-4">
           <div className="text-sm font-light text-gray-800 w-20">Videos</div>
           <div className="flex flex-wrap">
-            {videos.map((src, index) => (
+            {ad.videos.map((src, index) => (
               <video key={index} src={src} controls className="rounded border p-2 m-1" />
             ))}
           </div>
