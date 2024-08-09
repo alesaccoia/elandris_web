@@ -36,21 +36,25 @@ const AdComponent = ({ ad }) => {
     <div className="border p-6 rounded-lg shadow mb-6 bg-white">
       <div className="flex flex-wrap mb-4">
         <div className="w-full mb-4 sm:mb-0 flex flex-row">
-          <div className="font-light text-black w-3/4">
+          <div className="font-light text-black w-1/2">
             <strong>{ad.page_name}</strong> ({ad.page_id})
           </div>
-          <div className="font-light text-black w-1/4 text-right">
+          <div className="font-light text-black w-1/2 text-right">
             <a href={ad.ad_snapshot_url} target="_blank" rel="noopener noreferrer" className="text-black-500 underline">
-              View Ad Snapshot
+              View Snapshot ({ad.id})
             </a>
           </div>
         </div>
-        <div className="w-full mb-4 sm:mb-0 flex flex-row">
-          <div className="font-light text-black w-3/4">Start Date: {ad.ad_delivery_start_time}</div>
-          <div className="font-light text-black w-1/4 text-right">Total Reach: {ad.eu_total_reach}</div>
-        </div>
       </div>
       <div className="flex flex-wrap mb-4">
+        <div className="w-full mb-4 sm:mb-0 flex flex-row">
+          <div className="text-sm font-light text-gray-800 w-20">Start Date</div>
+          <div className="text-sm mx-4 flex flex-col">{ad.ad_delivery_start_time}</div>
+        </div>
+        <div className="w-full mb-4 sm:mb-0 flex flex-row">
+          <div className="text-sm font-light text-gray-800 w-20">Total Reach</div>
+          <div className="text-sm mx-4 flex flex-col">{ad.eu_total_reach}</div>
+        </div>
         {ad.publisher_platforms && (
           <div className="w-full mb-4 sm:mb-0 flex flex-row">
             <div className="text-sm font-light text-gray-800 w-20">Platforms</div>
@@ -67,12 +71,13 @@ const AdComponent = ({ ad }) => {
         )}
         {ad.target_locations && (
           <div className="w-full mb-4 sm:mb-0 flex flex-row">
-            <div className="text-sm font-light text-gray-800 w-20">Locations</div>
+            <div className="text-sm font-light text-gray-800 w-20 flex-shrink-0">Locations</div>
             <div className="text-sm mx-4 flex flex-wrap">
               {ad.target_locations.map((location, index) => (
                 <span key={index}>
                   {location.name}
                   {location.excluded && <span className="text-red-500"> (Excluded)</span>}
+                  {" // "}
                 </span>
               ))}
             </div>
@@ -82,7 +87,7 @@ const AdComponent = ({ ad }) => {
       <div className="mb-4">
         {ad.ad_creative_bodies && (
           <div className=" flex flex-row align-center items-center w-full">
-            <div className="text-sm  font-light text-gray-800  w-20">Bodies</div>
+            <div className="text-sm font-light text-gray-800 w-20 flex-shrink-0">Bodies</div>
             <div className="text-sm mx-4 flex flex-col">{renderUniqueItems(ad.ad_creative_bodies)}</div>
           </div>
         )}

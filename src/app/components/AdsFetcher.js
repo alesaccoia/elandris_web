@@ -34,6 +34,7 @@ const AdsFetcher = () => {
   }, []);
 
   const fetchAds = async () => {
+    setAds([]);
     const response = await fetch(`/api/ads?accessToken=${accessToken}&keyword=${keyword}&pageId=${pageId}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
     if (response.ok) {
       const data = await response.json();
@@ -58,6 +59,7 @@ const AdsFetcher = () => {
   ];
 
   const handleBankClick = async (pageId) => {
+    setAds([]);
     const response = await fetch(`/api/ads?accessToken=${accessToken}&pageId=${pageId}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
     if (response.ok) {
       const data = await response.json();
